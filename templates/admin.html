@@ -1,0 +1,126 @@
+
+<!doctype html>
+<html lang="el">
+<head>
+<meta charset="utf-8">
+<title>Love 97.5 Online Research</title>
+<style>
+body{font-family:Arial;background:#f4f4f4;margin:0;padding:24px;color:#222}
+.wrap{max-width:1200px;margin:auto;background:white;padding:24px;border-radius:18px;box-shadow:0 5px 20px #0001}
+h1{color:#d71920;margin-top:0}
+button,.btn{background:#d71920;color:white;border:0;border-radius:10px;padding:10px 15px;cursor:pointer;text-decoration:none;display:inline-block;margin:3px}
+.secondary{background:#333}
+input{width:100%;box-sizing:border-box;padding:10px;border:1px solid #ccc;border-radius:10px;margin:6px 0 12px}
+table{width:100%;border-collapse:collapse;margin:15px 0}
+th,td{border:1px solid #ddd;padding:8px;font-size:13px;text-align:left}
+th{background:#d71920;color:white}
+.notice{background:#fff8d8;border:1px solid #ffe58a;padding:12px;border-radius:12px;margin:12px 0;line-height:1.5}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+.stat{display:inline-block;background:#eee;border-radius:999px;padding:7px 12px;margin:3px;font-size:13px}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div style="text-align:center;margin-bottom:20px">
+<img src="/static/love975_logo.jpeg" style="width:170px;border-radius:50%;box-shadow:0 4px 18px #0002">
+<h1 style="margin-top:10px">Love 97.5 Online Research</h1>
+</div>
+
+
+{% if message %}
+<div class="notice">{{ message }}</div>
+{% endif %}
+
+<p>
+<a class="btn" href="{{ url_for('survey') }}" target="_blank">Άνοιγμα έρευνας ακροατή</a>
+<a class="btn secondary" href="{{ url_for('export_excel') }}">Κατέβασμα Excel</a>
+</p>
+
+<div class="notice">
+<b>Οδηγία:</b> Πέρασε τα τραγούδια ως αρχεία ήχου. Αν το αρχείο λέγεται
+<b>George Michael - Careless Whisper.mp3</b>, το σύστημα θα καταχωρήσει αυτόματα:
+Καλλιτέχνης = George Michael, Τίτλος = Careless Whisper.
+</div>
+
+<div class="grid">
+<div>
+<h2>Προσθήκη τραγουδιών έως {{ max_songs }}</h2>
+<form method="post" enctype="multipart/form-data">
+<input type="hidden" name="action" value="upload_songs">
+<input type="file" name="songs" multiple accept="audio/*">
+<button>Προσθήκη τραγουδιών</button>
+</form>
+
+<form method="post">
+<input type="hidden" name="action" value="clear_songs">
+<button class="secondary">Καθαρισμός όλων των τραγουδιών</button>
+</form>
+
+<p>
+<span class="stat">Τραγούδια: {{ songs|length }}/{{ max_songs }}</span>
+<span class="stat">Συμμετοχές: {{ participants_count }}</span>
+</p>
+</div>
+
+<div>
+<h2>Αποτελέσματα</h2>
+<p>Το Excel περιλαμβάνει Radio Summary, Age Group Summary, Raw Song Answers και Participants.</p>
+<a class="btn secondary" href="{{ url_for('export_excel') }}">Κατέβασμα Excel αποτελεσμάτων</a>
+
+<form method="post">
+<input type="hidden" name="action" value="clear_results">
+<button class="secondary">Καθαρισμός αποτελεσμάτων</button>
+</form>
+</div>
+</div>
+
+<h2>Λίστα τραγουδιών</h2>
+<table>
+<tr><th>#</th><th>Καλλιτέχνης</th><th>Τίτλος</th><th>Αρχικό αρχείο</th><th>Player</th><th>Ενέργεια</th></tr>
+{% for song in songs %}
+<tr>
+<td>{{ loop.index }}</td>
+<td>{{ song.artist or "-" }}</td>
+<td>{{ song.title }}</td>
+<td>{{ song.original_filename }}</td>
+<td><audio controls style="width:220px" src="{{ url_for('uploaded_file', filename=song.filename) }}"></audio></td>
+<td>
+<form method="post" style="margin:0">
+<input type="hidden" name="action" value="delete_song">
+<input type="hidden" name="song_id" value="{{ song.id }}">
+<button class="secondary">Διαγραφή</button>
+</form>
+</td>
+</tr>
+{% endfor %}
+</table>
+
+<h2>Live Radio Summary</h2>
+<table>
+<tr>
+<th>#</th><th>Title</th><th>Artist</th><th>N</th>
+<th>POSITIVE</th><th>FAV</th><th>LIKE</th><th>SO&SO</th><th>BURN</th><th>NEGATIVE</th><th>UNFAM</th><th>TOTAL</th>
+</tr>
+{% for r in summary %}
+<tr>
+<td>{{ loop.index }}</td>
+<td>{{ r.TITLE }}</td>
+<td>{{ r.ARTIST }}</td>
+<td>{{ r.N }}</td>
+<td>{{ r.POSITIVE }}%</td>
+<td>{{ r.FAV }}%</td>
+<td>{{ r.LIKE }}%</td>
+<td>{{ r["SO&SO"] }}%</td>
+<td>{{ r.BURN }}%</td>
+<td>{{ r.NEGATIVE }}%</td>
+<td>{{ r.UNFAMILIARITY }}%</td>
+<td><b>{{ r.TOTAL_SCORE }}%</b></td>
+</tr>
+{% endfor %}
+</table>
+
+</div>
+</body>
+</html>

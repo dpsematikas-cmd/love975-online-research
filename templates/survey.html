@@ -1,0 +1,223 @@
+
+<!doctype html>
+<html lang="el">
+<head>
+<meta charset="utf-8">
+<title>Love 97.5 Online Research</title>
+<style>
+body{font-family:Arial;background:#f4f4f4;margin:0;padding:20px;color:#222}
+.wrap{max-width:780px;margin:auto;background:white;padding:24px;border-radius:18px;box-shadow:0 5px 20px #0001}
+h1{color:#d71920}
+input,select{width:100%;box-sizing:border-box;padding:11px;border:1px solid #ccc;border-radius:10px;margin:6px 0 14px}
+audio{width:100%;margin:14px 0}
+.songbox{display:none;border-top:1px solid #eee;padding-top:20px;margin-top:20px}
+.songbox.active{display:block}
+.rating label,.check label{display:block;border:1px solid #ddd;border-radius:10px;padding:12px;margin:8px 0;cursor:pointer}
+.rating label:hover,.check label:hover{background:#fff8d8}
+button{background:#d71920;color:white;border:0;border-radius:10px;padding:12px 18px;font-size:16px;cursor:pointer;margin:4px}
+button.secondary{background:#333}
+.notice{background:#fff8d8;border:1px solid #ffe58a;padding:12px;border-radius:12px;margin:12px 0}
+.error{display:none;color:#d71920;font-weight:bold;margin:10px 0}
+.progress{height:8px;background:#eee;border-radius:20px;overflow:hidden;margin:18px 0}
+.bar{height:100%;background:#ffd200;width:0%}
+#musicSection{display:none}
+</style>
+<script>
+let currentSongIndex = 0;
+
+function stopAllAudio(){
+  document.querySelectorAll('audio').forEach(a => {
+    a.pause();
+    a.currentTime = 0;
+  });
+}
+
+function updateWeeklyStations(){
+  const fav = document.querySelector('select[name="favorite_station"]').value;
+  document.querySelectorAll('.weekly-station').forEach(cb => {
+    if(cb.value === fav){
+      cb.checked = false;
+      cb.disabled = true;
+      cb.parentElement.style.opacity = "0.35";
+    } else {
+      cb.disabled = false;
+      cb.parentElement.style.opacity = "1";
+    }
+  });
+}
+
+function startMusicTest(){
+  const required = ["name","age","area","email","favorite_station","listening_method"];
+  for(const name of required){
+    const el = document.querySelector(`[name="${name}"]`);
+    if(!el.value){
+      alert("Συμπλήρωσε όλα τα υποχρεωτικά στοιχεία πριν ξεκινήσεις.");
+      return;
+    }
+  }
+  if(!document.querySelector('input[name="listening_places"]:checked')){
+    alert("Επίλεξε από πού ακούς ραδιόφωνο.");
+    return;
+  }
+  if(!document.querySelector('input[name="listening_times"]:checked')){
+    alert("Επίλεξε τις ώρες που ακούς ραδιόφωνο.");
+    return;
+  }
+  document.getElementById("introSection").style.display = "none";
+  document.getElementById("musicSection").style.display = "block";
+  showSong(0);
+}
+
+function showSong(index){
+  stopAllAudio();
+  const boxes = Array.from(document.querySelectorAll(".songbox"));
+  boxes.forEach(b => b.classList.remove("active"));
+  currentSongIndex = index;
+  boxes[index].classList.add("active");
+  document.getElementById("songCounter").innerText = "Απόσπασμα " + (index + 1) + " από " + boxes.length;
+  document.getElementById("bar").style.width = ((index) / boxes.length * 100) + "%";
+  document.getElementById("answerError").style.display = "none";
+  document.getElementById("prevBtn").style.display = index === 0 ? "none" : "inline-block";
+  document.getElementById("nextBtn").style.display = index === boxes.length - 1 ? "none" : "inline-block";
+  document.getElementById("submitBtn").style.display = index === boxes.length - 1 ? "inline-block" : "none";
+  window.scrollTo({top:0, behavior:"smooth"});
+}
+
+function currentAnswered(){
+  const box = document.querySelectorAll(".songbox")[currentSongIndex];
+  return !!box.querySelector('input[type="radio"]:checked');
+}
+
+function nextSong(){
+  if(!currentAnswered()){
+    document.getElementById("answerError").innerText = "Επέλεξε μία απάντηση.";
+    document.getElementById("answerError").style.display = "block";
+    return;
+  }
+  showSong(currentSongIndex + 1);
+}
+
+function prevSong(){
+  showSong(currentSongIndex - 1);
+}
+
+function validateForm(){
+  const boxes = Array.from(document.querySelectorAll(".songbox"));
+  for(let i=0;i<boxes.length;i++){
+    if(!boxes[i].querySelector('input[type="radio"]:checked')){
+      showSong(i);
+      document.getElementById("answerError").innerText = "Επέλεξε μία απάντηση.";
+      document.getElementById("answerError").style.display = "block";
+      return false;
+    }
+  }
+  stopAllAudio();
+  return true;
+}
+</script>
+</head>
+<body>
+<div class="wrap">
+
+<div style="text-align:center;margin-bottom:20px">
+<img src="/static/love975_logo.jpeg" style="width:150px;border-radius:50%;box-shadow:0 4px 18px #0002">
+<h1>Love 97.5 Online Research</h1>
+</div>
+
+
+<form method="post" action="{{ url_for('submit') }}" onsubmit="return validateForm()">
+
+<div id="introSection">
+<div class="notice">Συμπλήρωσε πρώτα τα στοιχεία σου και μετά θα ξεκινήσει η μουσική έρευνα.</div>
+
+<h2>Στοιχεία ακροατή</h2>
+<label>Όνομα</label>
+<input name="name" required>
+
+<label>Ηλικιακή ομάδα</label>
+<select name="age" required>
+<option value="">Επιλογή</option>
+{% for age in age_groups %}
+<option>{{ age }}</option>
+{% endfor %}
+</select>
+
+<label>Περιοχή</label>
+<input name="area" required>
+
+<label>Email</label>
+<input type="email" name="email" required>
+
+<label><input type="checkbox" name="marketing_consent" style="width:auto"> Αποδέχομαι τη χρήση του email μου για προωθητικούς λόγους</label>
+
+<h2>Συνήθειες ακρόασης</h2>
+
+<label>Από πού ακούς ραδιόφωνο; Μπορείς να επιλέξεις περισσότερα από ένα.</label>
+<div class="check">
+{% for place in listening_places %}
+<label><input type="checkbox" name="listening_places" value="{{ place }}" style="width:auto"> {{ place }}</label>
+{% endfor %}
+</div>
+
+<label>Με ποιον τρόπο ακούς κυρίως ραδιόφωνο;</label>
+<select name="listening_method" required>
+<option value="">Επιλογή</option>
+{% for method in listening_methods %}
+<option>{{ method }}</option>
+{% endfor %}
+</select>
+
+<label>Ποιες ώρες ακούς ραδιόφωνο; Μπορείς να επιλέξεις περισσότερα από ένα.</label>
+<div class="check">
+{% for time in listening_times %}
+<label><input type="checkbox" name="listening_times" value="{{ time }}" style="width:auto"> {{ time }}</label>
+{% endfor %}
+</div>
+
+
+<h2>Ραδιόφωνο</h2>
+<label>Ποιο είναι το αγαπημένο σου ραδιόφωνο;</label>
+<select name="favorite_station" required onchange="updateWeeklyStations()">
+<option value="">Επιλογή</option>
+{% for station in radio_stations %}
+<option>{{ station }}</option>
+{% endfor %}
+</select>
+
+<label>Ποιους άλλους σταθμούς άκουσες έστω μία φορά την τελευταία εβδομάδα;</label>
+<div class="check">
+{% for station in radio_stations %}
+<label><input class="weekly-station" type="checkbox" name="weekly_stations" value="{{ station }}" style="width:auto"> {{ station }}</label>
+{% endfor %}
+</div>
+
+<button type="button" onclick="startMusicTest()">Ξεκίνα τη μουσική έρευνα</button>
+</div>
+
+<div id="musicSection">
+<div class="progress"><div class="bar" id="bar"></div></div>
+<div id="songCounter"></div>
+<div id="answerError" class="error">Επέλεξε μία απάντηση.</div>
+
+{% for song in songs %}
+<div class="songbox">
+<p><b>ΤΡΑΓΟΥΔΙ {{ loop.index }}</b></p>
+<audio controls src="{{ url_for('uploaded_file', filename=song.filename) }}"></audio>
+
+<div class="rating">
+{% for code,label in rating_options %}
+<label><input type="radio" name="song_{{ song.id }}" value="{{ code }}" required style="width:auto"> {{ label }}</label>
+{% endfor %}
+</div>
+</div>
+{% endfor %}
+
+<button type="button" class="secondary" id="prevBtn" onclick="prevSong()">Προηγούμενο</button>
+<button type="button" id="nextBtn" onclick="nextSong()">Επόμενο</button>
+<button type="submit" id="submitBtn" style="display:none">Υποβολή έρευνας</button>
+</div>
+
+</form>
+</div>
+</body>
+</html>
