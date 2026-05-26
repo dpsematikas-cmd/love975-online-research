@@ -22,6 +22,7 @@ th{background:#d71920;color:white}
 </head>
 <body>
 <div class="wrap">
+<div class="notice"><b>Νέα λειτουργία:</b> Όταν τελειώσει μια έρευνα, πάτα πρώτα <b>Κατέβασμα Excel</b> και μετά <b>Κλείσιμο έρευνας & διαγραφή mp3</b>. Τα αποτελέσματα μένουν, αλλά τα audio files φεύγουν από τον server.</div>
 
 <div style="text-align:center;margin-bottom:20px">
 <img src="/static/love975_logo.jpeg" style="width:170px;border-radius:50%;box-shadow:0 4px 18px #0002">
@@ -68,6 +69,11 @@ th{background:#d71920;color:white}
 <h2>Αποτελέσματα</h2>
 <p>Το Excel περιλαμβάνει Radio Summary, Age Group Summary, Raw Song Answers και Participants.</p>
 <a class="btn secondary" href="{{ url_for('export_excel') }}">Κατέβασμα Excel αποτελεσμάτων</a>
+
+<form method="post" onsubmit="return confirm('ΠΡΟΣΟΧΗ: Θα κλείσει η τρέχουσα έρευνα και θα διαγραφούν τα mp3 από τον server. Τα αποτελέσματα θα μείνουν στη βάση. Πριν το κάνεις, κατέβασε Excel. Συνέχεια;')">
+<input type="hidden" name="action" value="close_survey">
+<button class="secondary">Κλείσιμο έρευνας & διαγραφή mp3</button>
+</form>
 
 <form method="post">
 <input type="hidden" name="action" value="clear_results">

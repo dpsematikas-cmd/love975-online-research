@@ -69,6 +69,13 @@ def init_db():
         listening_times TEXT,
         created_at TEXT
     )""")
+    cur.execute("""CREATE TABLE IF NOT EXISTS survey_archives (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        closed_at TEXT,
+        songs_count INTEGER,
+        participants_count INTEGER,
+        note TEXT
+    )""")
     cur.execute("""CREATE TABLE IF NOT EXISTS song_answers (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         participant_id INTEGER,
@@ -229,6 +236,33 @@ def admin():
             conn.execute("DELETE FROM songs")
             conn.commit()
             message = "Καθαρίστηκαν όλα τα τραγούδια."
+
+        elif action == "close_survey":
+            # Κλείσιμο έρευνας: κρατάμε αποτελέσματα/metadata στη βάση, σβήνουμε μόνο τα audio files και τη λίστα τραγουδιών.
+            songs = conn.execute("SELECT * FROM songs").fetchall()
+            songs_count = len(songs)
+            participants_count = conn.execute("SELECT COUNT(*) FROM participants").fetchone()[0]
+
+            conn.execute("""
+                INSERT INTO survey_archives (closed_at, songs_count, participants_count, note)
+                VALUES (?, ?, ?, ?)
+            """, (
+                datetime.now().isoformat(timespec="seconds"),
+                songs_count,
+                participants_count,
+                "Closed survey: audio files deleted, results kept in database"
+            ))
+
+            for song in songs:
+                try:
+                    os.remove(os.path.join(app.config["UPLOAD_FOLDER"], song["filename"]))
+                except FileNotFoundError:
+                    pass
+
+            # Δεν σβήνουμε song_answers / participants, για να κρατηθούν τα αποτελέσματα.
+            conn.execute("DELETE FROM songs")
+            conn.commit()
+            message = "Η έρευνα έκλεισε. Τα αποτελέσματα κρατήθηκαν και τα mp3 διαγράφηκαν από τον server."
 
         elif action == "clear_results":
             conn.execute("DELETE FROM song_answers")
