@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+data/
+music_research.db
+uploads/*.mp3
+uploads/*.wav
+uploads/*.m4a
+uploads/*.ogg
+uploads/*.aac

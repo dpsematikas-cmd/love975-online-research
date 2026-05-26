@@ -1,17 +1,22 @@
 
 from flask import Flask, render_template, request, send_from_directory, send_file, redirect, url_for
 from werkzeug.utils import secure_filename
-import os, sqlite3, pandas as pd
+import os, sqlite3, pandas as pd, json
 from datetime import datetime
 from io import BytesIO
 
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
-UPLOAD_FOLDER = os.path.join(APP_DIR, "uploads")
-DB_PATH = os.path.join(APP_DIR, "music_research.db")
+
+# Μόνιμη αποθήκευση.
+# Στο Railway θα βάλουμε Volume στο /app/data και DATA_DIR=/app/data
+DATA_DIR = os.environ.get("DATA_DIR", os.path.join(APP_DIR, "data"))
+UPLOAD_FOLDER = os.path.join(DATA_DIR, "uploads")
+DB_PATH = os.path.join(DATA_DIR, "music_research.db")
 ALLOWED_EXTENSIONS = {"mp3", "wav", "m4a", "ogg", "aac"}
 
 app = Flask(__name__)
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
+os.makedirs(DATA_DIR, exist_ok=True)
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 RATING_OPTIONS = [
@@ -71,10 +76,27 @@ def init_db():
     )""")
     cur.execute("""CREATE TABLE IF NOT EXISTS survey_archives (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT,
         closed_at TEXT,
         songs_count INTEGER,
         participants_count INTEGER,
         note TEXT
+    )""")
+    cur.execute("""CREATE TABLE IF NOT EXISTS survey_archive_results (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        archive_id INTEGER,
+        title TEXT,
+        artist TEXT,
+        n INTEGER,
+        positive REAL,
+        fav REAL,
+        like_score REAL,
+        soso REAL,
+        burn REAL,
+        negative REAL,
+        unfamiliarity REAL,
+        total_score REAL,
+        age_json TEXT
     )""")
     cur.execute("""CREATE TABLE IF NOT EXISTS song_answers (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -83,6 +105,12 @@ def init_db():
         answer_code TEXT,
         answered_at TEXT
     )""")
+    archive_cols = [row[1] for row in cur.execute("PRAGMA table_info(survey_archives)").fetchall()]
+    if "name" not in archive_cols:
+        try:
+            cur.execute("ALTER TABLE survey_archives ADD COLUMN name TEXT")
+        except Exception:
+            pass
     existing_cols = [row[1] for row in cur.execute("PRAGMA table_info(participants)").fetchall()]
     for col in ["listening_places", "listening_method", "listening_times"]:
         if col not in existing_cols:
@@ -177,6 +205,63 @@ def submit():
     conn.close()
     return render_template("thanks.html")
 
+
+def save_current_survey_archive(conn, archive_name=None):
+    songs = conn.execute("SELECT * FROM songs ORDER BY id").fetchall()
+    songs_count = len(songs)
+    participants_count = conn.execute("SELECT COUNT(*) FROM participants").fetchone()[0]
+    closed_at = datetime.now().isoformat(timespec="seconds")
+
+    if not archive_name:
+        archive_name = "Έρευνα " + closed_at.replace("T", " ")
+
+    cur = conn.cursor()
+    cur.execute("""
+        INSERT INTO survey_archives (name, closed_at, songs_count, participants_count, note)
+        VALUES (?, ?, ?, ?, ?)
+    """, (
+        archive_name,
+        closed_at,
+        songs_count,
+        participants_count,
+        "Archived survey: scores saved, audio files deleted"
+    ))
+    archive_id = cur.lastrowid
+
+    summary_rows = build_summary(conn)
+    for r in summary_rows:
+        age_data = {}
+        for age in AGE_GROUPS:
+            age_data[age] = {
+                "positive": r.get(f"POSITIVE {age}", 0),
+                "total": r.get(f"TOTAL {age}", 0)
+            }
+        cur.execute("""
+            INSERT INTO survey_archive_results
+            (archive_id, title, artist, n, positive, fav, like_score, soso, burn, negative, unfamiliarity, total_score, age_json)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            archive_id,
+            r.get("TITLE", ""),
+            r.get("ARTIST", ""),
+            int(r.get("N", 0) or 0),
+            float(r.get("POSITIVE", 0) or 0),
+            float(r.get("FAV", 0) or 0),
+            float(r.get("LIKE", 0) or 0),
+            float(r.get("SO&SO", 0) or 0),
+            float(r.get("BURN", 0) or 0),
+            float(r.get("NEGATIVE", 0) or 0),
+            float(r.get("UNFAMILIARITY", 0) or 0),
+            float(r.get("TOTAL_SCORE", 0) or 0),
+            json.dumps(age_data, ensure_ascii=False)
+        ))
+
+    return archive_id
+
+def get_archives(conn):
+    return conn.execute("SELECT * FROM survey_archives ORDER BY id DESC").fetchall()
+
+
 @app.route("/admin", methods=["GET", "POST"])
 def admin():
     init_db()
@@ -238,32 +323,20 @@ def admin():
             message = "Καθαρίστηκαν όλα τα τραγούδια."
 
         elif action == "close_survey":
-            # Κλείσιμο έρευνας: κρατάμε αποτελέσματα/metadata στη βάση, σβήνουμε μόνο τα audio files και τη λίστα τραγουδιών.
+            archive_name = request.form.get("archive_name", "").strip()
+            archive_id = save_current_survey_archive(conn, archive_name)
+
             songs = conn.execute("SELECT * FROM songs").fetchall()
-            songs_count = len(songs)
-            participants_count = conn.execute("SELECT COUNT(*) FROM participants").fetchone()[0]
-
-            conn.execute("""
-                INSERT INTO survey_archives (closed_at, songs_count, participants_count, note)
-                VALUES (?, ?, ?, ?)
-            """, (
-                datetime.now().isoformat(timespec="seconds"),
-                songs_count,
-                participants_count,
-                "Closed survey: audio files deleted, results kept in database"
-            ))
-
             for song in songs:
                 try:
                     os.remove(os.path.join(app.config["UPLOAD_FOLDER"], song["filename"]))
                 except FileNotFoundError:
                     pass
 
-            # Δεν σβήνουμε song_answers / participants, για να κρατηθούν τα αποτελέσματα.
+            # Κρατάμε participants/song_answers για πλήρες raw export, αλλά μηδενίζουμε active songs.
             conn.execute("DELETE FROM songs")
             conn.commit()
-            message = "Η έρευνα έκλεισε. Τα αποτελέσματα κρατήθηκαν και τα mp3 διαγράφηκαν από τον server."
-
+            message = "Η έρευνα αρχειοθετήθηκε. Τα αποτελέσματα αποθηκεύτηκαν στο ιστορικό και τα mp3 διαγράφηκαν από τον server."
         elif action == "clear_results":
             conn.execute("DELETE FROM song_answers")
             conn.execute("DELETE FROM participants")
@@ -274,6 +347,7 @@ def admin():
     participants_count = conn.execute("SELECT COUNT(*) FROM participants").fetchone()[0]
     summary = build_summary(conn)
     age_summary = build_age_group_summary(conn)
+    archives = get_archives(conn)
     conn.close()
 
     return render_template(
@@ -283,6 +357,7 @@ def admin():
         participants_count=participants_count,
         summary=summary,
         age_summary=age_summary,
+        archives=archives,
         max_songs=30
     )
 
@@ -442,6 +517,78 @@ def export_excel():
         download_name="love975_music_research_results.xlsx",
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
+
+
+@app.route("/export_archive_excel/<int:archive_id>")
+def export_archive_excel(archive_id):
+    conn = db()
+    archive = conn.execute("SELECT * FROM survey_archives WHERE id=?", (archive_id,)).fetchone()
+    if not archive:
+        conn.close()
+        return "Archive not found", 404
+
+    rows = conn.execute("""
+        SELECT title AS TITLE, artist AS ARTIST, n AS N, positive AS POSITIVE, fav AS FAV,
+               like_score AS LIKE, soso AS "SO&SO", burn AS BURN, negative AS NEGATIVE,
+               unfamiliarity AS UNFAMILIARITY, total_score AS TOTAL_SCORE, age_json
+        FROM survey_archive_results
+        WHERE archive_id=?
+        ORDER BY total_score DESC
+    """, (archive_id,)).fetchall()
+
+    summary = []
+    age_rows = []
+    for row in rows:
+        d = dict(row)
+        age_json = d.pop("age_json", "{}")
+        try:
+            ages = json.loads(age_json)
+        except Exception:
+            ages = {}
+        for age, vals in ages.items():
+            d[f"POSITIVE {age}"] = vals.get("positive", 0)
+            d[f"TOTAL {age}"] = vals.get("total", 0)
+            age_rows.append({
+                "TITLE": d["TITLE"],
+                "ARTIST": d["ARTIST"],
+                "AGE_GROUP": age,
+                "POSITIVE": vals.get("positive", 0),
+                "TOTAL_SCORE": vals.get("total", 0)
+            })
+        summary.append(d)
+
+    summary_df = pd.DataFrame(summary)
+    age_df = pd.DataFrame(age_rows)
+
+    participants = conn.execute("SELECT * FROM participants ORDER BY id").fetchall()
+    participants_df = pd.DataFrame([dict(r) for r in participants])
+    conn.close()
+
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine="openpyxl") as writer:
+        summary_df.to_excel(writer, index=False, sheet_name="Archived Summary")
+        age_df.to_excel(writer, index=False, sheet_name="Archived Age Groups")
+        participants_df.to_excel(writer, index=False, sheet_name="Participants")
+        wb = writer.book
+        for ws in wb.worksheets:
+            ws.freeze_panes = "A2"
+            for col in ws.columns:
+                max_len = 10
+                letter = col[0].column_letter
+                for cell in col:
+                    value = str(cell.value) if cell.value is not None else ""
+                    max_len = max(max_len, min(len(value), 45))
+                ws.column_dimensions[letter].width = max_len + 2
+
+    output.seek(0)
+    safe_name = (archive["name"] or f"archive_{archive_id}").replace(" ", "_").replace("/", "-")
+    return send_file(
+        output,
+        as_attachment=True,
+        download_name=f"love975_archive_{safe_name}.xlsx",
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
 
 if __name__ == "__main__":
     init_db()
