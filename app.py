@@ -1,9 +1,10 @@
 
-from flask import Flask, render_template, request, send_from_directory, send_file, redirect, url_for
+from flask import session, redirect, url_for, Flask, render_template, request, send_from_directory, send_file, redirect, url_for
 from werkzeug.utils import secure_filename
 import os, sqlite3, pandas as pd, json
 from datetime import datetime
 from io import BytesIO
+from functools import wraps
 
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -15,6 +16,7 @@ DB_PATH = os.path.join(DATA_DIR, "music_research.db")
 ALLOWED_EXTENSIONS = {"mp3", "wav", "m4a", "ogg", "aac"}
 
 app = Flask(__name__)
+app.secret_key = 'LOVE975_SECRET_KEY_2026'
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 os.makedirs(DATA_DIR, exist_ok=True)
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -262,7 +264,104 @@ def get_archives(conn):
     return conn.execute("SELECT * FROM survey_archives ORDER BY id DESC").fetchall()
 
 
+
+ADMIN_USERNAME = "admin"
+ADMIN_PASSWORD = "Dimitris1971#"
+
+def login_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not session.get("admin_logged_in"):
+            return redirect(url_for("admin_login"))
+        return f(*args, **kwargs)
+    return decorated
+
+
+@app.route("/admin-login", methods=["GET", "POST"])
+def admin_login():
+    error = None
+    if request.method == "POST":
+        username = request.form.get("username", "")
+        password = request.form.get("password", "")
+
+        if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
+            session["admin_logged_in"] = True
+            return redirect(url_for("admin"))
+        else:
+            error = "Λάθος username ή password"
+
+    return render_template_string("""
+    <!DOCTYPE html>
+    <html lang="el">
+    <head>
+    <meta charset="UTF-8">
+    <title>Love 97.5 Research Login</title>
+    <style>
+    body{
+        background:#111;
+        color:white;
+        font-family:Arial;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        height:100vh;
+    }
+    .box{
+        background:#1e1e1e;
+        padding:40px;
+        border-radius:18px;
+        width:320px;
+    }
+    input{
+        width:100%;
+        padding:12px;
+        margin-top:10px;
+        border:none;
+        border-radius:10px;
+    }
+    button{
+        width:100%;
+        padding:14px;
+        margin-top:20px;
+        border:none;
+        border-radius:10px;
+        background:#ffcc00;
+        font-weight:bold;
+    }
+    h1{
+        color:#ffcc00;
+        text-align:center;
+    }
+    .err{
+        color:#ff8080;
+        margin-top:10px;
+    }
+    </style>
+    </head>
+    <body>
+    <div class="box">
+    <h1>Love 97.5<br>Online Research</h1>
+    <form method="post">
+    <input name="username" placeholder="Username">
+    <input type="password" name="password" placeholder="Password">
+    <button type="submit">LOGIN</button>
+    </form>
+    {% if error %}
+    <div class="err">{{ error }}</div>
+    {% endif %}
+    </div>
+    </body>
+    </html>
+    """, error=error)
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("admin_login"))
+
+
 @app.route("/admin", methods=["GET", "POST"])
+@login_required
 def admin():
     init_db()
     conn = db()
