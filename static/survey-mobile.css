@@ -1,0 +1,39 @@
+/* LOVE 97.5 mobile-first survey refresh. Presentation only: no form fields or values changed. */
+:root{--love-red:#d71920;--love-yellow:#ffd200;--love-ink:#152d4d}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:linear-gradient(155deg,#fff7e0 0%,#f4f5f9 55%,#eef1f8 100%);padding:clamp(10px,3vw,30px);font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif;line-height:1.5}
+.wrap{width:100%;max-width:780px;border-radius:24px;padding:clamp(18px,4vw,34px);box-shadow:0 16px 50px #16294a17}
+h1{font-size:clamp(1.35rem,4vw,2rem);line-height:1.2}
+h2{font-size:1.3rem;margin-top:28px}
+input:not([type=checkbox]):not([type=radio]),select{font:inherit;min-height:50px;border:1px solid #cbd2dc;border-radius:14px;background:#fff}
+input:focus-visible,select:focus-visible,button:focus-visible,.rating label:focus-within,.check label:focus-within{outline:3px solid #ffd200;outline-offset:2px}
+.check label{display:flex;align-items:flex-start;gap:10px;background:#fff;border-color:#dfe4ed}
+.check input{flex-shrink:0;width:20px;height:20px;accent-color:var(--love-red)}
+button{min-height:48px;font-weight:700;transition:transform .15s ease,filter .15s ease}
+button:hover{filter:brightness(.95)}
+button:disabled{opacity:.55;cursor:not-allowed}
+.notice{line-height:1.5}
+#musicSection{padding-top:4px}
+#songCounter{font-size:.95rem;font-weight:700;color:#596477;margin-bottom:16px}
+.progress{height:10px;background:#e8ecf2}
+.bar{transition:width .25s ease}
+.songbox.active{display:block;border:0;padding:0;margin:0}
+.songbox p{font-size:1.4rem;text-align:center;color:var(--love-ink);margin:18px 0}
+.songbox audio{display:block;width:100%;margin:18px 0 24px;border-radius:20px}
+.rating{display:grid;gap:10px;margin-bottom:22px}
+.rating label{display:flex;align-items:center;gap:12px;margin:0;padding:15px;border:2px solid #e3e7ef;border-radius:16px;background:#f8faff;font-weight:600;min-height:62px;transition:border-color .15s,background .15s}
+.rating label input{width:22px!important;height:22px;flex-shrink:0;accent-color:var(--love-red)}
+.rating label:has(input:checked){border-color:var(--love-red);background:#fff1f1;color:#98151b}
+#prevBtn,#nextBtn,#submitBtn{margin-top:8px}
+@media(max-width:600px){
+ body{padding:0;background:#fff}
+ .wrap{border-radius:0;box-shadow:none;padding:20px 18px 32px;min-height:100dvh}
+ .wrap>div:first-child img{width:112px!important}
+ .songbox p{font-size:1.25rem}
+ .rating label{font-size:1rem}
+ #musicSection>button{width:100%;margin:6px 0;min-height:54px}
+ #introSection>button{width:100%;margin:14px 0}
+ input,select{font-size:16px!important}
+}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important}}
