@@ -1024,6 +1024,16 @@ def export_archive_excel(archive_id):
     )
 
 
+app.config.update(
+    TEST_RATING_OPTIONS=RATING_OPTIONS,
+    TEST_RADIO_STATIONS=RADIO_STATIONS,
+    TEST_AGE_GROUPS=AGE_GROUPS,
+    TEST_LISTENING_PLACES=LISTENING_PLACES,
+    TEST_LISTENING_METHODS=LISTENING_METHODS,
+    TEST_LISTENING_TIMES=LISTENING_TIMES,
+    TEST_COUNTS_FN=counts_for_rows,
+    TEST_METRICS_FN=metrics_from_counts,
+)
 from test_mode import test_bp
 app.register_blueprint(test_bp)
 
