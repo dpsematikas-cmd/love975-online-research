@@ -100,7 +100,7 @@ async function startMusicTest(){
   startBtn.disabled = true;
 
   try {
-    const resp = await fetch("{{ url_for('check_email') }}", {
+    const resp = await fetch("{{ url_for(check_endpoint|default('check_email')) }}", {
       method: "POST",
       body: new FormData(form)
     });
@@ -188,7 +188,7 @@ function validateForm(){
 </div>
 
 
-<form method="post" action="{{ url_for('submit') }}" onsubmit="return validateForm()">
+<form method="post" action="{{ url_for(submit_endpoint|default('submit')) }}" onsubmit="return validateForm()">
 
 <div id="introSection">
 <div class="notice">Συμπλήρωσε πρώτα τα στοιχεία σου και μετά θα ξεκινήσει η μουσική έρευνα.</div>
@@ -265,7 +265,7 @@ function validateForm(){
 {% for song in songs %}
 <div class="songbox">
 <div class="disc-scene"><div class="vinyl-record"><img src="{{ url_for('static', filename='love975_logo.jpeg') }}" alt="LOVE"></div></div><p class="song-number">ΤΡΑΓΟΥΔΙ {{ loop.index }}</p>
-<audio controls playsinline preload="metadata" src="{{ url_for('uploaded_file', filename=song.filename) }}" onplay="this.closest('.songbox').querySelector('.vinyl-record').classList.add('spinning');document.getElementById('playHint').hidden=true" onpause="this.closest('.songbox').querySelector('.vinyl-record').classList.remove('spinning')" onended="this.closest('.songbox').querySelector('.vinyl-record').classList.remove('spinning')"></audio>
+<audio controls playsinline preload="metadata" src="{{ url_for(audio_endpoint|default('uploaded_file'), filename=song.filename) }}" onplay="this.closest('.songbox').querySelector('.vinyl-record').classList.add('spinning');document.getElementById('playHint').hidden=true" onpause="this.closest('.songbox').querySelector('.vinyl-record').classList.remove('spinning')" onended="this.closest('.songbox').querySelector('.vinyl-record').classList.remove('spinning')"></audio>
 
 <div class="rating">
 {% for code,label in rating_options %}
