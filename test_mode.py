@@ -10,7 +10,7 @@ import hmac
 from datetime import datetime
 from io import BytesIO
 import pandas as pd
-from flask import Blueprint, request, render_template, redirect, url_for, session, jsonify, send_file, send_from_directory
+from flask import Blueprint, request, render_template, redirect, url_for, session, jsonify, send_file, send_from_directory, current_app
 from werkzeug.utils import secure_filename
 
 test_bp = Blueprint("test_mode", __name__, url_prefix="/test-mode")
@@ -122,7 +122,12 @@ def survey():
     if not songs:
         return render_template("no_songs.html")
     # Reuse the exact same listener form and six rating options as the live app.
-    from app import RATING_OPTIONS, RADIO_STATIONS, AGE_GROUPS, LISTENING_PLACES, LISTENING_METHODS, LISTENING_TIMES
+    RATING_OPTIONS = current_app.config["TEST_RATING_OPTIONS"]
+    RADIO_STATIONS = current_app.config["TEST_RADIO_STATIONS"]
+    AGE_GROUPS = current_app.config["TEST_AGE_GROUPS"]
+    LISTENING_PLACES = current_app.config["TEST_LISTENING_PLACES"]
+    LISTENING_METHODS = current_app.config["TEST_LISTENING_METHODS"]
+    LISTENING_TIMES = current_app.config["TEST_LISTENING_TIMES"]
     return render_template("survey.html", songs=songs, rating_options=RATING_OPTIONS,
                            radio_stations=RADIO_STATIONS, age_groups=AGE_GROUPS,
                            listening_places=LISTENING_PLACES, listening_methods=LISTENING_METHODS,
@@ -204,7 +209,9 @@ def submit():
     return render_template("thanks.html")
 
 def summary_for(con):
-    from app import counts_for_rows, metrics_from_counts, AGE_GROUPS
+    counts_for_rows = current_app.config["TEST_COUNTS_FN"]
+    metrics_from_counts = current_app.config["TEST_METRICS_FN"]
+    AGE_GROUPS = current_app.config["TEST_AGE_GROUPS"]
     result = []
     for song in songs_for(con):
         rows = con.execute("SELECT answer_code FROM test_answers WHERE song_id=?", (song["id"],)).fetchall()
@@ -223,7 +230,9 @@ def summary_for(con):
 @test_bp.route("/export-excel")
 def export_excel():
     if not admin_only(): return redirect(url_for("admin_login"))
-    from app import AGE_GROUPS, counts_for_rows, metrics_from_counts
+    AGE_GROUPS = current_app.config["TEST_AGE_GROUPS"]
+    counts_for_rows = current_app.config["TEST_COUNTS_FN"]
+    metrics_from_counts = current_app.config["TEST_METRICS_FN"]
     con = connection()
     summary = summary_for(con)
     ages = []
