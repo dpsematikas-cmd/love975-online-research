@@ -5,6 +5,8 @@ It is only registered on the feature branch until an explicit production approva
 """
 import os
 import sqlite3
+import secrets
+import hmac
 from datetime import datetime
 from io import BytesIO
 import pandas as pd
@@ -34,6 +36,9 @@ def connection():
     con.execute("""CREATE TABLE IF NOT EXISTS test_answers (
         participant_id INTEGER, song_id INTEGER, answer_code TEXT, answered_at TEXT,
         PRIMARY KEY (participant_id, song_id))""")
+    con.execute("CREATE TABLE IF NOT EXISTS test_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)")
+    if not con.execute("SELECT 1 FROM test_settings WHERE key='invite'").fetchone():
+        con.execute("INSERT INTO test_settings VALUES ('invite',?)", (secrets.token_urlsafe(32),))
     con.commit()
     return con
 
@@ -96,15 +101,22 @@ def admin():
                 except FileNotFoundError: pass
                 msg = "Το δοκιμαστικό τραγούδι διαγράφηκε."
     songs = songs_for(con)
+    invite_token = con.execute("SELECT value FROM test_settings WHERE key='invite'").fetchone()[0]
     participants = con.execute("SELECT COUNT(*) FROM test_participants").fetchone()[0]
     summary = summary_for(con)
     con.close()
     return render_template("test_admin.html", songs=songs, participants_count=participants,
-                           summary=summary, message=msg)
+                           summary=summary, message=msg, invite_token=invite_token)
 
 @test_bp.route("/")
 def survey():
     con = connection()
+    token = con.execute("SELECT value FROM test_settings WHERE key='invite'").fetchone()[0]
+    if request.args.get("invite") and hmac.compare_digest(request.args["invite"], token):
+        session["test_mode_invited"] = True
+    if not (admin_only() or session.get("test_mode_invited")):
+        con.close()
+        return "Απαιτείται σύνδεσμος πρόσκλησης για τη δοκιμή.", 403
     songs = songs_for(con)
     con.close()
     if not songs:
@@ -145,6 +157,7 @@ def validate(d):
 
 @test_bp.route("/check-email", methods=["POST"])
 def check_email():
+    if not (admin_only() or session.get('test_mode_invited')): return 'Forbidden', 403
     d = fields()
     err = validate(d)
     if err: return jsonify(ok=False, error=err), 400
@@ -156,6 +169,7 @@ def check_email():
 
 @test_bp.route("/submit", methods=["POST"])
 def submit():
+    if not (admin_only() or session.get('test_mode_invited')): return 'Forbidden', 403
     d = fields()
     err = validate(d)
     if err: return err, 400
