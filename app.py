@@ -1024,6 +1024,9 @@ def export_archive_excel(archive_id):
     )
 
 
+from test_mode import test_bp
+app.register_blueprint(test_bp)
+
 if __name__ == "__main__":
     init_db()
     port = int(os.environ.get("PORT", 5000))
