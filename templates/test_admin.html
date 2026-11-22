@@ -1,0 +1,21 @@
+<!doctype html><html lang="el"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>LOVE — TEST MODE</title><style>
+body{font-family:Arial,sans-serif;background:#f4f4f4;color:#222;margin:0;padding:20px}.wrap{max-width:1100px;margin:auto;background:#fff;padding:24px;border-radius:16px}h1{color:#bd1425}.notice{background:#fff4d4;border:1px solid #ebce70;padding:14px;border-radius:10px;margin:15px 0}a.btn,button{background:#c71e30;color:#fff;border:0;border-radius:8px;padding:10px 14px;display:inline-block;text-decoration:none;cursor:pointer;margin:4px}.secondary{background:#333!important}input{padding:10px;margin:8px 0}table{border-collapse:collapse;width:100%;overflow:auto}td,th{border:1px solid #ddd;padding:8px;text-align:left;font-size:13px}th{background:#c71e30;color:white}.scroll{overflow-x:auto}</style></head><body><main class="wrap">
+<h1>LOVE 97,5 — TEST MODE</h1><div class="notice"><b>ΜΟΝΟ ΔΟΚΙΜΗ:</b> Ξεχωριστή βάση δεδομένων, αρχεία ήχου και αποτελέσματα. Η κανονική έρευνα δεν επηρεάζεται.</div>
+<p><a class="btn secondary" href="{{ url_for('admin') }}">Επιστροφή στο κανονικό Control Panel</a>
+<a class="btn" href="{{ url_for('test_mode.survey') }}" target="_blank">Άνοιγμα δοκιμαστικής ψηφοφορίας</a>
+<a class="btn secondary" href="{{ url_for('test_mode.export_excel') }}">Excel δοκιμής</a></p>
+{% if message %}<div class="notice">{{ message }}</div>{% endif %}
+<p><b>Τραγούδια:</b> {{ songs|length }}/30 · <b>Συμμετοχές:</b> {{ participants_count }}</p>
+<h2>Ανέβασμα δοκιμαστικών τραγουδιών</h2><form method="post" enctype="multipart/form-data">
+<input type="hidden" name="action" value="upload"><input type="file" name="songs" accept="audio/*" multiple required>
+<button>Προσθήκη τραγουδιών</button></form>
+<h2>Τραγούδια</h2><div class="scroll"><table><tr><th>#</th><th>Καλλιτέχνης</th><th>Τίτλος</th><th>Audio</th><th></th></tr>
+{% for s in songs %}<tr><td>{{ loop.index }}</td><td>{{ s.artist }}</td><td>{{ s.title }}</td>
+<td><audio controls style="max-width:240px" src="{{ url_for('test_mode.audio',filename=s.filename) }}"></audio></td>
+<td><form method="post"><input type="hidden" name="action" value="delete_song"><input type="hidden" name="song_id" value="{{ s.id }}"><button class="secondary">Διαγραφή</button></form></td></tr>{% endfor %}
+</table></div>
+<h2>Radio Summary — TEST</h2><div class="scroll"><table><tr><th>#</th><th>Title</th><th>Artist</th><th>N</th><th>POSITIVE</th><th>FAV</th><th>LIKE</th><th>SO&SO</th><th>BURN</th><th>NEGATIVE</th><th>UNFAM</th><th>TOTAL</th></tr>
+{% for r in summary %}<tr><td>{{ loop.index }}</td><td>{{ r.TITLE }}</td><td>{{ r.ARTIST }}</td><td>{{ r.N }}</td><td>{{ r.POSITIVE }}%</td><td>{{ r.FAV }}%</td><td>{{ r.LIKE }}%</td><td>{{ r["SO&SO"] }}%</td><td>{{ r.BURN }}%</td><td>{{ r.NEGATIVE }}%</td><td>{{ r.UNFAMILIARITY }}%</td><td><b>{{ r.TOTAL_SCORE }}%</b></td></tr>{% endfor %}
+</table></div><h2>Νέα δοκιμή</h2><form method="post" onsubmit="return confirm('Θα διαγραφούν ΜΟΝΟ οι δοκιμαστικές ψήφοι και τα δοκιμαστικά τραγούδια. Συνέχεια;')">
+<input type="hidden" name="action" value="reset"><button class="secondary">Μηδενισμός TEST MODE</button></form>
+</main></body></html>
