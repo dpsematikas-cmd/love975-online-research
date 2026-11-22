@@ -55,7 +55,7 @@ class TestModeIntegration(unittest.TestCase):
         self.assertEqual(con.execute("SELECT COUNT(*) FROM test_participants").fetchone()[0],1)
         self.assertEqual(con.execute("SELECT COUNT(*) FROM test_answers").fetchone()[0],1)
         con.close()
-        self.assertIn("already",self.client.post("/test-mode/submit",data=data).data.decode("utf-8").lower() if False else "already")
+        self.assertEqual(self.client.post("/test-mode/submit",data=data).status_code,200)
         con=connection()
         self.assertEqual(con.execute("SELECT COUNT(*) FROM test_participants").fetchone()[0],1)
         con.close()
