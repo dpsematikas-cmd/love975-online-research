@@ -43,7 +43,7 @@ RADIO_STATIONS = [
 
 AGE_GROUPS = ["15-24", "25-34", "35-44", "45-54", "55-64", "65-74"]
 LISTENING_PLACES = ["Σπίτι", "Αυτοκίνητο", "Δουλειά"]
-LISTENING_METHODS = ["Από internet", "Από κανονικό ραδιόφωνο"]
+LISTENING_METHODS = ["Από internet", "Από κανονικό ραδιόφωνο", "Και τα δύο (Internet & FM)"]
 LISTENING_TIMES = ["Πρωί", "Μεσημέρι", "Απόγευμα", "Βράδυ"]
 
 def db():
@@ -1023,6 +1023,19 @@ def export_archive_excel(archive_id):
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
 
+
+app.config.update(
+    TEST_RATING_OPTIONS=RATING_OPTIONS,
+    TEST_RADIO_STATIONS=RADIO_STATIONS,
+    TEST_AGE_GROUPS=AGE_GROUPS,
+    TEST_LISTENING_PLACES=LISTENING_PLACES,
+    TEST_LISTENING_METHODS=LISTENING_METHODS,
+    TEST_LISTENING_TIMES=LISTENING_TIMES,
+    TEST_COUNTS_FN=counts_for_rows,
+    TEST_METRICS_FN=metrics_from_counts,
+)
+from test_mode import test_bp
+app.register_blueprint(test_bp)
 
 if __name__ == "__main__":
     init_db()

@@ -1,0 +1,19 @@
+name: TEST MODE regression checks
+on:
+  push:
+    branches: [feature/mobile-survey-refresh]
+  workflow_dispatch:
+jobs:
+  isolated-test-mode:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install test dependencies
+        run: pip install flask pandas openpyxl
+      - name: Run isolated regression tests
+        run: python -m unittest discover -s tests -v
