@@ -154,9 +154,9 @@ def fields():
                 listening_method=f.get("listening_method","").strip(), listening_times=f.getlist("listening_times"))
 
 def validate(d):
-    if not all([d["age"], d["area"], d["email"], d["favorite_station"], d["listening_places"], d["listening_method"], d["listening_times"]]):
+    if not all([d["name"], d["weekly_stations"], d["age"], d["area"], d["email"], d["favorite_station"], d["listening_places"], d["listening_method"], d["listening_times"]]):
         return "Λείπουν υποχρεωτικά πεδία."
-    if d["favorite_station"] in d["weekly_stations"]:
+    if d["favorite_station"] in d["weekly_stations"] or ("Κανέναν άλλο" in d["weekly_stations"] and len(d["weekly_stations"]) > 1):
         return "Το αγαπημένο ραδιόφωνο δεν μπορεί να επιλεγεί και στη δεύτερη ερώτηση."
     return None
 
