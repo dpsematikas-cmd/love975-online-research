@@ -81,7 +81,7 @@ async function startMusicTest(){
   const required = ["name","age","area","email","favorite_station","listening_method"];
   for(const name of required){
     const el = document.querySelector(`[name="${name}"]`);
-    if(!el.value){
+    if(!el.value.trim() || !el.checkValidity()){
       alert("Συμπλήρωσε όλα τα υποχρεωτικά στοιχεία πριν ξεκινήσεις.");
       return;
     }
@@ -95,6 +95,7 @@ async function startMusicTest(){
     return;
   }
 
+  if(!document.querySelector('input[name="weekly_stations"]:checked')){ alert("Επίλεξε άλλους σταθμούς ή Κανέναν άλλο."); return; }
   const form = document.querySelector("form");
   const startBtn = form.querySelector('button[type="button"]');
   startBtn.disabled = true;
@@ -249,8 +250,9 @@ function validateForm(){
 
 <label>Ποιους άλλους σταθμούς άκουσες έστω μία φορά την τελευταία εβδομάδα;</label>
 <div class="check">
+<label><input class="weekly-station" type="checkbox" name="weekly_stations" value="Κανέναν άλλο" onchange="if(this.checked) document.querySelectorAll('.weekly-station').forEach(c=>{if(c!==this)c.checked=false})"> Κανέναν άλλο</label>
 {% for station in radio_stations %}
-<label><input class="weekly-station" type="checkbox" name="weekly_stations" value="{{ station }}" style="width:auto"> {{ station }}</label>
+<label><input onchange="if(this.checked) document.querySelector('input[value=\"Κανέναν άλλο\"]').checked=false" class="weekly-station" type="checkbox" name="weekly_stations" value="{{ station }}" style="width:auto"> {{ station }}</label>
 {% endfor %}
 </div>
 
