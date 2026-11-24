@@ -43,7 +43,7 @@ RADIO_STATIONS = [
 
 AGE_GROUPS = ["15-24", "25-34", "35-44", "45-54", "55-64", "65-74"]
 LISTENING_PLACES = ["Σπίτι", "Αυτοκίνητο", "Δουλειά"]
-LISTENING_METHODS = ["Από internet", "Από κανονικό ραδιόφωνο"]
+LISTENING_METHODS = ["Από internet", "Από κανονικό ραδιόφωνο", "Και τα δύο (Internet & FM)"]
 LISTENING_TIMES = ["Πρωί", "Μεσημέρι", "Απόγευμα", "Βράδυ"]
 
 def db():
